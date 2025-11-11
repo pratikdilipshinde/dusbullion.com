@@ -1,12 +1,16 @@
 "use client";
-import { useState } from "react";
+
+import { useEffect, useMemo, useState } from "react";
 import Modal from "./Modal";
 import { useUI } from "../store/ui";
-import { auth } from "../lib/firebase";
+import { getClientAuth } from "../lib/firebase";
 import {
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
   updateProfile,
+  sendPasswordResetEmail,
+  GoogleAuthProvider,
+  signInWithPopup,
 } from "firebase/auth";
 
 export default function AuthModal() {
@@ -17,41 +21,78 @@ export default function AuthModal() {
   const [name, setName] = useState("");
   const [show, setShow] = useState(false);
   const [err, setErr] = useState("");
+  const [info, setInfo] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const reset = () => {
-    setEmail(""); setPassword(""); setName(""); setErr(""); setShow(false);
-  };
+  // keep tab in sync if modal is opened with a different initialTab
+  useEffect(() => { setTab(initialTab); }, [initialTab, authOpen]);
+
+  const auth = useMemo(() => getClientAuth(), [authOpen]);
+
+  function resetForm() {
+    setEmail(""); setPassword(""); setName(""); setErr(""); setInfo(""); setShow(false);
+  }
 
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault();
-    setLoading(true); setErr("");
+    setErr(""); setInfo("");
+    if (!auth) { setErr("Auth not available. Please refresh and try again."); return; }
+    setLoading(true);
     try {
       await signInWithEmailAndPassword(auth, email.trim(), password);
-      reset(); closeAuth();
+      resetForm(); closeAuth();
     } catch (e: any) {
-      setErr(e?.message || "Login failed");
-    } finally {
-      setLoading(false);
-    }
+      setErr(parseFirebaseError(e?.message || String(e)));
+    } finally { setLoading(false); }
   }
 
   async function handleRegister(e: React.FormEvent) {
     e.preventDefault();
-    setLoading(true); setErr("");
+    setErr(""); setInfo("");
+    if (!auth) { setErr("Auth not available. Please refresh and try again."); return; }
+    setLoading(true);
     try {
       const cred = await createUserWithEmailAndPassword(auth, email.trim(), password);
       if (name.trim()) await updateProfile(cred.user, { displayName: name.trim() });
-      reset(); closeAuth();
+      resetForm(); closeAuth();
     } catch (e: any) {
-      setErr(e?.message || "Registration failed");
-    } finally {
-      setLoading(false);
-    }
+      setErr(parseFirebaseError(e?.message || String(e)));
+    } finally { setLoading(false); }
+  }
+
+  async function handleForgot() {
+    setErr(""); setInfo("");
+    if (!auth) { setErr("Auth not available. Please refresh and try again."); return; }
+    if (!email.trim()) { setErr("Enter your email above, then click Forgot password."); return; }
+    setLoading(true);
+    try {
+      await sendPasswordResetEmail(auth, email.trim());
+      setInfo("Password reset email sent. Check your inbox.");
+    } catch (e: any) {
+      setErr(parseFirebaseError(e?.message || String(e)));
+    } finally { setLoading(false); }
+  }
+
+  async function handleGoogle() {
+    setErr(""); setInfo("");
+    if (!auth) { setErr("Auth not available. Please refresh and try again."); return; }
+    setLoading(true);
+    try {
+      const provider = new GoogleAuthProvider();
+      await signInWithPopup(auth, provider);
+      resetForm(); closeAuth();
+    } catch (e: any) {
+      setErr(parseFirebaseError(e?.message || String(e)));
+    } finally { setLoading(false); }
   }
 
   return (
-    <Modal open={authOpen} onClose={closeAuth} ariaLabel="Sign in or create account" widthClass="max-w-lg">
+    <Modal
+      open={authOpen}
+      onClose={() => { if (!loading) { resetForm(); closeAuth(); } }}
+      ariaLabel="Sign in or create account"
+      widthClass="max-w-lg"
+    >
       {/* Tabs */}
       <div className="mb-4 grid grid-cols-2 gap-1 rounded-xl bg-neutral-100 p-1">
         <button
@@ -68,7 +109,7 @@ export default function AuthModal() {
         </button>
       </div>
 
-      {/* Content */}
+      {/* Body */}
       {tab === "login" ? (
         <form onSubmit={handleLogin} className="space-y-4">
           <div className="space-y-1">
@@ -93,6 +134,7 @@ export default function AuthModal() {
                 required
                 className="w-full rounded-xl border border-neutral-300 px-3 py-2"
                 placeholder="••••••••"
+                minLength={6}
               />
               <button
                 type="button"
@@ -102,25 +144,40 @@ export default function AuthModal() {
                 {show ? "Hide" : "Show"}
               </button>
             </div>
+            <button
+              type="button"
+              onClick={handleForgot}
+              className="mt-1 text-left text-xs font-medium text-blue-700 hover:underline"
+            >
+              Forgot password?
+            </button>
           </div>
 
           {err && <p className="text-sm text-red-600">{err}</p>}
+          {info && <p className="text-sm text-green-700">{info}</p>}
 
-          <div className="flex items-center justify-between">
-            <button
-              type="button"
-              onClick={closeAuth}
-              className="btn-ghost"
-            >
-              Cancel
-            </button>
-            <button
-              disabled={loading}
-              className="btn-primary"
-            >
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <button type="button" onClick={closeAuth} className="btn-ghost">Cancel</button>
+            <button disabled={loading || !auth} className="btn-primary">
               {loading ? "Signing in…" : "Sign in"}
             </button>
           </div>
+
+          {/* Google (optional) */}
+          <div className="relative my-3">
+            <div className="absolute inset-0 flex items-center"><div className="h-px w-full bg-neutral-200" /></div>
+            <div className="relative flex justify-center">
+              <span className="bg-white px-2 text-xs text-neutral-500">or</span>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={handleGoogle}
+            disabled={!auth || loading}
+            className="w-full rounded-xl border border-neutral-300 px-4 py-2 text-sm font-medium hover:bg-neutral-50"
+          >
+            Continue with Google
+          </button>
         </form>
       ) : (
         <form onSubmit={handleRegister} className="space-y-4">
@@ -167,24 +224,45 @@ export default function AuthModal() {
           </div>
 
           {err && <p className="text-sm text-red-600">{err}</p>}
+          {info && <p className="text-sm text-green-700">{info}</p>}
 
-          <div className="flex items-center justify-between">
-            <button
-              type="button"
-              onClick={closeAuth}
-              className="btn-ghost"
-            >
-              Cancel
-            </button>
-            <button
-              disabled={loading}
-              className="btn-primary"
-            >
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <button type="button" onClick={closeAuth} className="btn-ghost">Cancel</button>
+            <button disabled={loading || !auth} className="btn-primary">
               {loading ? "Creating…" : "Create account"}
             </button>
           </div>
+
+          {/* Google (optional) */}
+          <div className="relative my-3">
+            <div className="absolute inset-0 flex items-center"><div className="h-px w-full bg-neutral-200" /></div>
+            <div className="relative flex justify-center">
+              <span className="bg-white px-2 text-xs text-neutral-500">or</span>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={handleGoogle}
+            disabled={!auth || loading}
+            className="w-full rounded-xl border border-neutral-300 px-4 py-2 text-sm font-medium hover:bg-neutral-50"
+          >
+            Continue with Google
+          </button>
         </form>
       )}
     </Modal>
   );
+}
+
+/* ---------- helpers ---------- */
+
+function parseFirebaseError(msg: string): string {
+  // Humanize common Firebase error messages
+  if (msg.includes("auth/invalid-credential")) return "Invalid email or password.";
+  if (msg.includes("auth/user-not-found")) return "No account found with this email.";
+  if (msg.includes("auth/wrong-password")) return "Wrong password. Try again.";
+  if (msg.includes("auth/email-already-in-use")) return "This email is already registered.";
+  if (msg.includes("auth/too-many-requests")) return "Too many attempts. Please wait and try again.";
+  if (msg.includes("auth/network-request-failed")) return "Network error. Check your connection.";
+  return msg.replace("Firebase: ", "");
 }

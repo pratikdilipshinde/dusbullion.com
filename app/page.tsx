@@ -20,7 +20,7 @@ export default function HomePage() {
           </p>
           <div className="flex flex-wrap gap-3">
             <Link href="/products" className="rounded-2xl bg-black px-5 py-3 text-white hover:opacity-90">Shop Products</Link>
-            <Link href="#why-us" className="rounded-2xl border border-neutral-300 px-5 py-3 hover:bg-white">Why dusbullion</Link>
+            <Link href="/why-us" className="rounded-2xl border border-neutral-300 px-5 py-3 hover:bg-white">Why dusbullion</Link>
           </div>
         </div>
         <div className="relative aspect-video rounded-3xl bg-gradient-to-br from-yellow-100 via-amber-100 to-orange-100 p-1 overflow-hidden">

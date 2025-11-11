@@ -3,9 +3,9 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import Footer from "./components/Footer";
 import Header from "./components/Header";
-import TopBar from "./components/TopBar";
 import Providers from "./_providers";
 import AuthModal from "./components/AuthModal";
+import UserMenu from "./components/UserMenu";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -28,9 +28,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className="min-h-dvh bg-neutral-50 text-neutral-900 antialiased">
         <Providers>
           <Header />
-          <AuthModal />
+          {/* <AuthModal /> */}
           <main className="mx-auto max-w-7xl px-4 pb-20 pt-8">{children}</main>
           <Footer />
+          {/* Mount once at root */}
+          <AuthModal />
         </Providers>
       </body>
     </html>

@@ -1,78 +1,88 @@
 "use client";
 import Image from "next/image";
-import { Product } from "../lib/types";
-import { useQuery } from "@tanstack/react-query";
+import type { Product } from "../lib/products";
+import AddToCartButton from "./AddToCartButton";
 
-type SpotResponse =
-  | { usdPerOz: number; updatedAt: string; provider: string } // your current API shape
-  | { goldUsdPerOz: number; silverUsdPerOz: number; updatedAt: string; provider: string }; // future multi-metal
+type PropsA = {
+  product: Product;
+  onAdd: (p: Product) => void;
+  spotPerOz?: number;
+};
 
-const GRAMS_PER_OZ = 31.1034768;
-const formatUsd = (n: number) => n.toLocaleString("en-US", { style: "currency", currency: "USD" });
+type PropsB = {
+  p: Product;
+  spotPerOz: number;
+  onAdd?: never;
+};
 
-export default function ProductCard({ product, onAdd }: { product: Product; onAdd: (p: Product) => void; }) {
-  const { data } = useQuery<SpotResponse>({
-    queryKey: ["spot-prices"],
-    queryFn: async () => (await fetch("/api/spot", { cache: "no-store" })).json(),
-    refetchInterval: 15000,
-  });
+type ProductCardProps = PropsA | PropsB;
 
-  // Fallback logic:
-  const goldOz =
-    "goldUsdPerOz" in (data || {}) ? (data as any).goldUsdPerOz
-    : "usdPerOz" in (data || {}) ? (data as any).usdPerOz
-    : 0;
+function money(n: number) {
+  return n.toLocaleString("en-US", { style: "currency", currency: "USD" });
+}
 
-  const silverOz =
-    "silverUsdPerOz" in (data || {}) ? (data as any).silverUsdPerOz : 0;
+export default function ProductCard(props: ProductCardProps) {
+  const prod: Product = "p" in props ? props.p : props.product;
+  const brand = prod.brand;
+  const name = prod.name;
 
-  const spotOz = product.metal === "GOLD" ? goldOz : silverOz;
-
-  const oz = product.weightGrams / GRAMS_PER_OZ;
-  const linePrice = spotOz > 0 ? spotOz * oz + product.premiumUsd : 0;
+  // If we have spot price, show live price; otherwise omit it (parent-driven flow).
+  const livePrice =
+    typeof (props as any).spotPerOz === "number"
+      ? Math.max(0, (props as any).spotPerOz) + (prod.premiumUsd || 0)
+      : null;
 
   return (
-    <div className="card group">
-      <div className="relative aspect-[4/3] overflow-hidden rounded-2xl flex items-center justify-center bg-neutral-50">
+    <div className="card space-y-2">
+      <div className="relative aspect-[3/2] overflow-hidden rounded-xl bg-white">
         <Image
-          src={product.image}
-          alt={product.name}
+          src={prod.image}
+          alt={name}
           fill
-          className="object-contain transition-transform duration-300 group-hover:scale-105"
-          sizes="(max-width:768px) 100vw, (max-width:1200px) 50vw, 25vw"
+          className="object-contain"
+          sizes="(max-width: 768px) 50vw, 25vw"
         />
-        {!product.inStock && (
-          <span className="absolute right-2 top-2 rounded bg-red-600 px-2 py-0.5 text-[10px] font-medium text-white">
-            Out of stock
-          </span>
+      </div>
+
+      <div className="space-y-1">
+        <h3 className="line-clamp-2 text-sm font-semibold">{name}</h3>
+        <p className="text-xs text-neutral-600">{brand}</p>
+      </div>
+
+      <div className="flex items-center justify-between">
+        {livePrice != null ? (
+          <div>
+            <p className="text-xs text-neutral-500">Live Price</p>
+            <p className="text-sm font-semibold">{money(livePrice)}</p>
+          </div>
+        ) : (
+          <span className="text-xs text-neutral-400">&nbsp;</span>
+        )}
+        </div>
+        <div className="justify-self-center">
+        {/* Action: either parent-provided onAdd OR internal add with computed price */}
+        {"onAdd" in props && props.onAdd ? (
+          <button
+            className="btn-gold w-full sm:w-auto"
+            onClick={() => props.onAdd(prod)}
+          >
+            Add to Cart
+          </button>
+        ) : livePrice != null ? (
+          <AddToCartButton
+            product={{ id: prod.id, name: prod.name, image: prod.image, meta: { brand: prod.brand, weight: "1 oz" } }}
+            priceUsd={livePrice}
+          />
+        ) : (
+          <button
+            className="btn-ghost w-full sm:w-auto"
+            disabled
+            title="Price unavailable"
+          >
+            Add to Cart
+          </button>
         )}
       </div>
-
-      <div className="mt-3 space-y-1">
-        <h3 className="text-base font-medium">{product.name}</h3>
-        <p className="text-sm text-neutral-600">
-          {product.purity} • {product.weightGrams} g {product.form.toLowerCase()}
-          {product.brand ? ` • ${product.brand}` : ""}
-        </p>
-        <div className="flex items-end justify-between">
-          <p className="text-lg font-semibold">
-            {linePrice > 0 ? formatUsd(linePrice) : "—"}
-          </p>
-          <p className="text-xs text-neutral-500">
-            {spotOz > 0
-              ? `${formatUsd(spotOz)}/oz + $${product.premiumUsd} prem.`
-              : <span className="inline-block h-3 w-24 animate-pulse rounded bg-neutral-200" />}
-          </p>
-        </div>
-      </div>
-
-      <button
-        disabled={!product.inStock}
-        onClick={() => onAdd(product)}
-        className={`mt-3 w-full ${product.inStock ? "btn-primary" : "btn-ghost text-neutral-400"}`}
-      >
-        {product.inStock ? "Add to Cart" : "Notify Me"}
-      </button>
     </div>
   );
 }
