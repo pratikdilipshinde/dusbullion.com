@@ -1,6 +1,9 @@
+// app/components/ProductCard.tsx
 "use client";
+
 import Image from "next/image";
 import type { Product } from "../lib/products";
+import { TROY_OUNCE_IN_GRAMS } from "../lib/money";
 import AddToCartButton from "./AddToCartButton";
 
 type PropsA = {
@@ -26,10 +29,20 @@ export default function ProductCard(props: ProductCardProps) {
   const brand = prod.brand;
   const name = prod.name;
 
-  // If we have spot price, show live price; otherwise omit it (parent-driven flow).
-  const livePrice =
+  // Weight-aware price calculation
+  const grams = prod.weightGrams ?? TROY_OUNCE_IN_GRAMS;
+
+  const spotPerOz =
     typeof (props as any).spotPerOz === "number"
-      ? Math.max(0, (props as any).spotPerOz) + (prod.premiumUsd || 0)
+      ? (props as any).spotPerOz
+      : null;
+
+  const livePrice =
+    spotPerOz != null
+      ? Math.max(
+          0,
+          spotPerOz * (grams / TROY_OUNCE_IN_GRAMS) + (prod.premiumUsd || 0)
+        )
       : null;
 
   return (
@@ -58,8 +71,9 @@ export default function ProductCard(props: ProductCardProps) {
         ) : (
           <span className="text-xs text-neutral-400">&nbsp;</span>
         )}
-        </div>
-        <div className="justify-self-center">
+      </div>
+
+      <div className="justify-self-center">
         {/* Action: either parent-provided onAdd OR internal add with computed price */}
         {"onAdd" in props && props.onAdd ? (
           <button
@@ -70,12 +84,22 @@ export default function ProductCard(props: ProductCardProps) {
           </button>
         ) : livePrice != null ? (
           <AddToCartButton
-            product={{ id: prod.id, name: prod.name, image: prod.image, meta: { brand: prod.brand, weight: "1 oz" } }}
+            product={{
+              id: prod.id,
+              name: prod.name,
+              image: prod.image,
+              meta: {
+                brand: prod.brand,
+              },
+              // 🔥 these two are the key for server-side recompute
+              premiumUsd: prod.premiumUsd,
+              weightGrams: prod.weightGrams,
+            }}
             priceUsd={livePrice}
           />
         ) : (
           <button
-            className="btn-ghost w-full sm:w-auto"
+            className="btn-secondary w-full sm:w-auto"
             disabled
             title="Price unavailable"
           >

@@ -1,26 +1,38 @@
+// app/components/AddToCartButton.tsx
 "use client";
+
 import { useCart } from "../store/cart";
 
-export default function AddToCartButton({
-  product,
-  priceUsd,
-}: {
-  product: { id: string; name: string; image: string; meta?: Record<string, any> };
+type ProductInput = {
+  id: string;
+  name: string;
+  image: string;
+  meta?: { brand?: string; [key: string]: any };
+  premiumUsd?: number;
+  weightGrams?: number;
+};
+
+type Props = {
+  product: ProductInput;
   priceUsd: number;
-}) {
+};
+
+export default function AddToCartButton({ product, priceUsd }: Props) {
   const add = useCart((s) => s.add);
 
   return (
     <button
-      className="btn-secondary w-fill cursor-pointer"
+      className="btn-secondary w-full sm:w-auto"
       onClick={() =>
         add(
           {
             id: product.id,
             name: product.name,
             image: product.image,
-            priceUsd,
+            priceUsd,                 // used for UI subtotal
             meta: product.meta,
+            premiumUsd: product.premiumUsd,   // 🔐 used by /api/checkout
+            weightGrams: product.weightGrams, // 🔐 used by /api/checkout
           },
           1
         )

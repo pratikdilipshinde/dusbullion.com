@@ -52,7 +52,7 @@ export default function SpotTicker() {
     <div className="flex items-center gap-2 text-sm">
         <span className="text-[#c89f48]">Gold (XAU):</span>
         <span className="font-medium text-white">{formatUsd(price)} / oz |</span>
-        <span className="font-medium text-white">{formatUsd(price*32.1507)} / kg</span>
+        <span className="font-medium text-white">{formatUsd(price*31.1035)} / kg</span>
         <span className={`${arrowClass} text-[10px]`}>{arrow}</span>
     </div>
   );
