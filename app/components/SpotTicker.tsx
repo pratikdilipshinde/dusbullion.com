@@ -15,6 +15,8 @@ export default function SpotTicker() {
     queryKey: ["spot-price"],
     queryFn: async () => {
       const r = await fetch("/api/spot", { cache: "no-store" });
+      console.log("GOLDAPI Request");
+      console.log(r.json());
       return r.json();
     },
     refetchInterval: 15000,
