@@ -2,7 +2,6 @@
 
 export type Metal = "GOLD" | "SILVER";
 export type Form = "BAR" | "COIN";
-
 export type Product = {
   id: string;
   sku: string;

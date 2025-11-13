@@ -99,7 +99,7 @@ export default function ProductCard(props: ProductCardProps) {
           />
         ) : (
           <button
-            className="btn-secondary w-full sm:w-auto"
+            className="btn-secondary w-full sm:w-auto cursor-pointer"
             disabled
             title="Price unavailable"
           >
