@@ -6,58 +6,34 @@ import type { Product } from "../lib/products";
 import { TROY_OUNCE_IN_GRAMS } from "../lib/money";
 import AddToCartButton from "./AddToCartButton";
 
-type PropsA = {
+type ProductCardProps = {
   product: Product;
-  onAdd: (p: Product) => void;
   spotPerOz?: number;
 };
-
-type PropsB = {
-  p: Product;
-  spotPerOz: number;
-  onAdd?: never;
-};
-
-type ProductCardProps = PropsA | PropsB;
 
 function money(n: number) {
   return n.toLocaleString("en-US", { style: "currency", currency: "USD" });
 }
 
-export default function ProductCard(props: ProductCardProps) {
-  const prod: Product = "p" in props ? props.p : props.product;
-  const brand = prod.brand;
-  const name = prod.name;
-  // Weight-aware price calculation
-  const grams = prod.weightGrams ?? TROY_OUNCE_IN_GRAMS;
-
-  const spotPerOz =
-    typeof (props as any).spotPerOz === "number"
-      ? (props as any).spotPerOz
-      : null;
+export default function ProductCard({ product, spotPerOz }: ProductCardProps) {
+  const brand = product.brand;
+  const name = product.name;
+  const grams = product.weightGrams ?? TROY_OUNCE_IN_GRAMS;
 
   const livePrice =
-    spotPerOz != null
+    typeof spotPerOz === "number"
       ? Math.max(
           0,
-          spotPerOz * (grams / TROY_OUNCE_IN_GRAMS) + (prod.premiumUsd || 0)
+          spotPerOz * (grams / TROY_OUNCE_IN_GRAMS) +
+            (product.premiumUsd || 0)
         )
       : null;
-    
-  console.log(
-    "ProductCard",
-    prod.id,
-    "spotPerOz",
-    spotPerOz,
-    "livePrice",
-    livePrice
-  ); // 👈 See this in Vercel DevTools
 
   return (
     <div className="card space-y-2">
       <div className="relative aspect-[3/2] overflow-hidden rounded-xl bg-white">
         <Image
-          src={prod.image}
+          src={product.image}
           alt={name}
           fill
           className="object-contain"
@@ -82,26 +58,18 @@ export default function ProductCard(props: ProductCardProps) {
       </div>
 
       <div className="justify-self-center">
-        {/* Action: either parent-provided onAdd OR internal add with computed price */}
-        {"onAdd" in props && props.onAdd ? (
-          <button
-            className="btn-gold w-full sm:w-auto"
-            onClick={() => props.onAdd(prod)}
-          >
-            Add to Cart
-          </button>
-        ) : livePrice != null ? (
+        {livePrice != null ? (
           <AddToCartButton
             product={{
-              id: prod.id,
-              name: prod.name,
-              image: prod.image,
+              id: product.id,
+              name: product.name,
+              image: product.image,
               meta: {
-                brand: prod.brand,
+                brand: product.brand,
               },
-              // 🔥 these two are the key for server-side recompute
-              premiumUsd: prod.premiumUsd,
-              weightGrams: prod.weightGrams,
+              // 🔥 used later by /api/checkout for server-side recompute
+              premiumUsd: product.premiumUsd,
+              weightGrams: product.weightGrams,
             }}
             priceUsd={livePrice}
           />

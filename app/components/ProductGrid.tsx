@@ -1,17 +1,18 @@
+// app/components/ProductGrid.tsx
 import ProductCard from "./ProductCard";
 import type { Product } from "../lib/products";
 
 export default function ProductGrid({
   products,
-  onAdd,
+  spotPerOz,
 }: {
   products: Product[];
-  onAdd: (p: Product) => void;
+  spotPerOz?: number;
 }) {
   return (
     <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
       {products.map((p) => (
-        <ProductCard key={p.id} product={p} onAdd={onAdd} />
+        <ProductCard key={p.id} product={p} spotPerOz={spotPerOz} />
       ))}
     </div>
   );

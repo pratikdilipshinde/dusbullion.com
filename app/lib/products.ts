@@ -18,7 +18,21 @@ export type Product = {
 };
 
 export const PRODUCTS: Product[] = [
-  // --- The Royal Mint ---
+  // --- The Sample Gold Bar ---
+  {
+    id: "au-bar-1oz-sample-goldbar",
+    sku: "AU-BAR-1OZ-SAMPLE",
+    name: "The Sample Gold (1oz Gold Bar)",
+    metal: "GOLD",
+    form: "BAR",
+    weightGrams: 0.001,
+    purity: "999.9",
+    premiumUsd: 1,
+    brand: "The Sample Gold",
+    country: "UK",
+    image: "/products/Great-Britain-Great-Engravers-Collection-Una-Lion-1oz.jpg",
+    inStock: true,
+  },// --- The Royal Mint ---
   {
     id: "au-bar-1oz-royal-mint",
     sku: "AU-BAR-1OZ-ROYALMINT",
@@ -31,6 +45,21 @@ export const PRODUCTS: Product[] = [
     brand: "The Royal Mint",
     country: "UK",
     image: "/products/Great-Britain-Great-Engravers-Collection-Una-Lion-1oz.jpg",
+    inStock: true,
+  },
+  // --- The Credit Suisse ---
+  {
+    id: "au-bar-1oz-credit-suisse",
+    sku: "AU-BAR-1OZ-CREDITSUISSE",
+    name: "The Credit Suisse (1oz Gold Bar)",
+    metal: "GOLD",
+    form: "BAR",
+    weightGrams: 31.1035,
+    purity: "999.9",
+    premiumUsd: 200,
+    brand: "The Credit Suisse",
+    country: "CH",
+    image: "/products/credit-suisse-1oz.jpg",
     inStock: true,
   },
   // --- Italpreziosi ---

@@ -1,53 +1,15 @@
 // app/cart/page.tsx
 "use client";
+
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useCart } from "../store/cart";
 import { useAuth } from "../lib/auth-context";
+import { useUI } from "../store/ui";
 
 function money(n: number) {
   return n.toLocaleString("en-US", { style: "currency", currency: "USD" });
-}
-
-// New helper: stripe checkout + identity gate
-async function beginCheckout(
-  items: any[],
-  buyer: { email?: string; identityVerified?: boolean }
-) {
-  const res = await fetch("/api/checkout", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ items, buyer }),
-  });
-
-  const data = await res.json();
-
-  // High-value → need ID verification first
-  if (data.needIdentity) {
-    const r2 = await fetch("/api/identity/start", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        user_email: buyer.email,
-        return_url: `${window.location.origin}/cart?verified=1`,
-      }),
-    });
-    const j2 = await r2.json();
-    if (!r2.ok || !j2.url) {
-      alert(j2.error || "Unable to start identity verification.");
-      return;
-    }
-    window.location.href = j2.url;
-    return;
-  }
-
-  if (!res.ok || !data.url) {
-    alert(data.error || "Unable to start checkout. Please try again.");
-    return;
-  }
-
-  // Normal flow: go to Stripe Checkout
-  window.location.href = data.url;
 }
 
 export default function CartPage() {
@@ -56,11 +18,16 @@ export default function CartPage() {
   const remove     = useCart((s) => s.remove);
   const clear      = useCart((s) => s.clear);
   const subtotalFn = useCart((s) => s.subtotal);
+
   const { user }   = useAuth();
+  const { openAuth } = useUI();
+  const router     = useRouter();
+
   const total    = subtotalFn();
-  const shipping = total > 500 ? 0 : 15;
+  const shipping = 0;
   const grand    = total + shipping;
 
+  // ------------------- EMPTY CART -------------------
   if (!items.length) {
     return (
       <section className="section py-8 sm:py-12">
@@ -75,6 +42,7 @@ export default function CartPage() {
     );
   }
 
+  // ------------------- MAIN VIEW -------------------
   return (
     <section className="section space-y-4 py-6 sm:space-y-6 sm:py-8">
       <h1 className="text-xl font-semibold sm:text-2xl">Your Cart</h1>
@@ -84,16 +52,29 @@ export default function CartPage() {
         <div className="rounded-2xl border border-neutral-200 bg-white">
           <ul className="divide-y divide-neutral-200">
             {items.map((it) => (
-              <li key={it.id} className="flex flex-col gap-4 p-4 sm:flex-row sm:gap-5">
+              <li
+                key={it.id}
+                className="flex flex-col gap-4 p-4 sm:flex-row sm:gap-5"
+              >
                 <div className="relative h-40 w-full overflow-hidden rounded-xl border sm:h-24 sm:w-24 sm:shrink-0">
-                  <Image src={it.image} alt={it.name} fill className="object-contain" />
+                  <Image
+                    src={it.image}
+                    alt={it.name}
+                    fill
+                    className="object-contain"
+                  />
                 </div>
+
                 <div className="flex min-w-0 flex-1 flex-col">
                   <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
                     <div className="min-w-0">
-                      <p className="truncate text-base font-medium sm:text-sm">{it.name}</p>
+                      <p className="truncate text-base font-medium sm:text-sm">
+                        {it.name}
+                      </p>
                       {it.meta?.brand && (
-                        <p className="mt-0.5 text-sm text-neutral-500 sm:text-xs">{it.meta.brand}</p>
+                        <p className="mt-0.5 text-sm text-neutral-500 sm:text-xs">
+                          {it.meta.brand}
+                        </p>
                       )}
                     </div>
                     <p className="text-base font-semibold sm:text-sm">
@@ -189,20 +170,23 @@ export default function CartPage() {
             </div>
           </div>
 
+          {/* ★ LOGIN CHECK ADDED HERE ★ */}
           <button
             className="btn-secondary mt-4 w-full py-3 text-base sm:py-2 sm:text-sm"
-            onClick={() =>
-              beginCheckout(items, {
-                email: user?.email ?? undefined,
-                // identityVerified: true // later: set this if you track verified status
-              })
-            }
+            onClick={() => {
+              if (!user) {
+                alert("Please log in to proceed to checkout.");
+                openAuth("login");  // 👈 after alert → open login modal
+                return;
+              }
+              router.push("/checkout");
+            }}
           >
             Checkout
           </button>
 
           <p className="mt-2 text-xs text-neutral-500">
-            You’ll complete payment securely on Stripe Checkout.
+            You&apos;ll enter card details and shipping on the next step.
           </p>
         </aside>
       </div>
