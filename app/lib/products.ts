@@ -32,7 +32,8 @@ export const PRODUCTS: Product[] = [
     country: "UK",
     image: "/products/Great-Britain-Great-Engravers-Collection-Una-Lion-1oz.jpg",
     inStock: true,
-  },// --- The Royal Mint ---
+  },
+  // --- The Royal Mint ---
   {
     id: "au-bar-1oz-royal-mint",
     sku: "AU-BAR-1OZ-ROYALMINT",
